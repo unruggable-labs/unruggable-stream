@@ -24,50 +24,14 @@
 // The end result is that the Timelock/'ENS: DAO Wallet' will have created a vesting plan for the UNRUGGABLE_ADDRESS to receive 100,000 ENS tokens over 4 years. During that period Unruggable will be able to use them to take part in DAO Governance
 
 
-import { Foundry } from '@adraffy/blocksmith';
 import { Contract } from 'ethers';
+import { UNRUGGABLE_ADDR, SENDER_ADDR, LOCKER_ADDR, ENS_TOKEN_ADDR, HEDGEY_BATCH_PLANNER_ADDR } from './addresses';
+import { ERC20_ABI, HEDGEY_BATCH_PLANNER_ABI } from './abis';
+import { init } from './utils';
 
-const ENS_TOKEN_ADDR = "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72";
-
-const UNRUGGABLE_ADDRESS = "0x64Ca550F78d6Cc711B247319CC71A04A166707Ab";
-
-//ENS DAO Wallet
-const SENDER = "0xFe89cc7aBB2C4183683ab71653C4cdc9B02D44b7";
-
-const PROVIDER_URL = `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`;
-
-const foundry = await Foundry.launch({
-    infoLog: false,
-    fork: PROVIDER_URL,
-});
-
-await foundry.provider.send('anvil_impersonateAccount', [
-    SENDER
-]);
-
-// Get a signer for the impersonated address
-const impersonatedSigner = await foundry.provider.getSigner(SENDER);
-
-const ERC20_ABI = [
-    "function approve(address spender, uint256 amount) external returns (bool)",
-    "function allowance(address owner, address spender) external view returns (uint256)",
-    "function balanceOf(address account) external view returns (uint256)",
-    "function decimals() external view returns (uint8)",
-];
+const { foundry, impersonatedSigner } = await init();
 
 const ENSTokenContract =  new Contract(ENS_TOKEN_ADDR, ERC20_ABI, foundry.provider);
-
-
-const LOCKER_ADDRESS = "0x1bb64AF7FE05fc69c740609267d2AbE3e119Ef82";
-const ENS_TOKEN_ADDRESS = "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72";
-
-const HEDGEY_BATCH_PLANNER_ADDR = "0x3466EB008EDD8d5052446293D1a7D212cb65C646";
-
-const HEDGEY_BATCH_PLANNER_ABI = [
-	"event BatchCreated(address indexed,address,uint256,uint256,uint8)",
-	"function batchLockingPlans(address,address,uint256,(address,uint256,uint256,uint256,uint256)[],uint256,uint8)",
-	"function batchVestingPlans(address,address,uint256,(address,uint256,uint256,uint256,uint256)[],uint256,address,bool,uint8)"
-];
 
 const HedgeyBatchPlannerContract = new Contract(HEDGEY_BATCH_PLANNER_ADDR, HEDGEY_BATCH_PLANNER_ABI, foundry.provider);
 
@@ -80,7 +44,7 @@ console.log("ENS Decimals:", ENSDecimals);
 const ENSDivisor = BigInt(10) ** ENSDecimals; // Convert to BigInt
 
 
-const approveENS = async () => {
+export const approveENS = async () => {
         
     console.log("-------------------");
     console.log("-------------------");
@@ -90,7 +54,7 @@ const approveENS = async () => {
 
 
     // Check the allowance before. Should be 0.
-    const ENSAllowanceBefore = await ENSTokenContract.allowance(SENDER, HEDGEY_BATCH_PLANNER_ADDR);
+    const ENSAllowanceBefore = await ENSTokenContract.allowance(SENDER_ADDR, HEDGEY_BATCH_PLANNER_ADDR);
     console.log("ENSAllowanceBefore", ENSAllowanceBefore);
 
     // We need to add the appropriate number of 0's for the ENS contract, 
@@ -118,14 +82,14 @@ const approveENS = async () => {
     // Send the transaction from the ENS DAO wallet to the USDC contract address
     const approveAllowanceTx = await impersonatedSigner.sendTransaction({
         to: ENS_TOKEN_ADDR,
-        from: SENDER,
+        from: SENDER_ADDR,
         data: approveAllowanceCalldata,
     });
 
     await approveAllowanceTx.wait();
 
     //Check that the allowance has been set correctly
-    const ENSAllowanceAfter = await ENSTokenContract.allowance(SENDER, HEDGEY_BATCH_PLANNER_ADDR);
+    const ENSAllowanceAfter = await ENSTokenContract.allowance(SENDER_ADDR, HEDGEY_BATCH_PLANNER_ADDR);
     console.log("ENSAllowanceAfter", ENSAllowanceAfter);
 
     console.log("");
@@ -135,7 +99,7 @@ const approveENS = async () => {
 }
 
 
-const createPlan = async () => {
+export const createPlan = async () => {
 
     /*
     /// @notice function to create a batch of vesting plans.
@@ -192,12 +156,12 @@ const createPlan = async () => {
 
     // Generate the calldata to create the vesting plan
     const batchVestingPlansCalldata = HedgeyBatchPlannerContract.interface.encodeFunctionData("batchVestingPlans", [
-        LOCKER_ADDRESS,
-        ENS_TOKEN_ADDRESS,
+        LOCKER_ADDR,
+        ENS_TOKEN_ADDR,
         TOTAL_ENS_AMOUNT,
         [
             [
-                UNRUGGABLE_ADDRESS, 
+                UNRUGGABLE_ADDR, 
                 TOTAL_ENS_AMOUNT, 
                 currentTimestampSeconds, 
                 currentTimestampSeconds, 
@@ -205,7 +169,7 @@ const createPlan = async () => {
             ],
         ],
         PERIOD,
-        SENDER,
+        SENDER_ADDR,
         CAN_ADMIN_TRANSFER,
         MINT_TYPE
     ]);
@@ -220,7 +184,7 @@ const createPlan = async () => {
     // Send the transaction from the ENS DAO wallet to the USDC contract address
     const batchVestingPlansTx = await impersonatedSigner.sendTransaction({
         to: HEDGEY_BATCH_PLANNER_ADDR,
-        from: SENDER,
+        from: SENDER_ADDR,
         data: batchVestingPlansCalldata,
     });
 
@@ -228,17 +192,3 @@ const createPlan = async () => {
     
     return batchVestingPlansCalldata;
 }
-
-
-const approveENSCalldata = await approveENS();
-const createPlanCalldata = await createPlan();
-
-console.log("------------------------------------------");
-console.log("-------- CALL DATA FOR EXECUTABLE --------")
-console.log("------------------------------------------");
-
-console.log("------------------------------------------");
-console.log(approveENSCalldata);
-console.log("------------------------------------------");
-console.log(createPlanCalldata);
-console.log("------------------------------------------");

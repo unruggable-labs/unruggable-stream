@@ -1,96 +1,28 @@
-import { Foundry } from '@adraffy/blocksmith';
-import { Contract } from 'ethers';
+import { Contract }                     from 'ethers';
+import { 
+    ERC20_ABI, 
+    USDCX_ABI, 
+    SUPERFLUID_ABI, 
+    AUTOWRAP_MANAGER_ABI 
+}                                       from './abis';
+import { 
+    USDC_ADDR, 
+    USDCX_ADDR, 
+    SUPERFLUID_ADDR, 
+    SENDER_ADDR, 
+    AUTOWRAP_MANAGER_ADDR, 
+    AUTOWRAP_STRATEGY_ADDR, 
+    UNRUGGABLE_ADDR 
+}                                       from './addresses';
+import { init }                         from './utils';
 
-//Superfluid contract
-const HOST_ADDR = "0x4E583d9390082B65Bef884b629DFA426114CED6d";
-
-//ERC20 Token contract addresses
-const USDC_ADDR = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
-const USDCX_ADDR = "0x1BA8603DA702602A8657980e825A6DAa03Dee93a";
-
-const UNRUGGABLE_ADDRESS = "0x64Ca550F78d6Cc711B247319CC71A04A166707Ab";
-
-/**
- * Contract address: 
- * The CFAv1Forwarder contract provides an easy to use interface to
- * ConstantFlowAgreementV1 specific functionality of Super Tokens.
- * Instances of this contract can operate on the protocol only if configured as "trusted forwarder"
- * by protocol governance.
- */
-// Previously called CFA_FWD_ADDR
-const SUPERFLUID_ADDR = "0xcfA132E353cB4E398080B9700609bb008eceB125";
-
-//Stream management pod. Unused.
-const STEWARDS_SAFE = "0xB162Bf7A7fD64eF32b787719335d06B2780e31D1";
-
-//ENS DAO Wallet
-const SENDER = "0xFe89cc7aBB2C4183683ab71653C4cdc9B02D44b7";
-
-//Autowrap contract addresses
-const AUTOWRAP_MGR_ADDR = "0x30aE282CF477E2eF28B14d0125aCEAd57Fe1d7a1";
-const AUTOWRAP_STRATEGY_ADDR = "0x1D65c6d3AD39d454Ea8F682c49aE7744706eA96d";
-
-const PROVIDER_URL = `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`;
-
-const foundry = await Foundry.launch({
-    infoLog: false,
-    fork: PROVIDER_URL,
-});
-
-await foundry.provider.send('anvil_impersonateAccount', [
-    SENDER
-]);
-
-// Get a signer for the impersonated address
-const impersonatedSigner = await foundry.provider.getSigner(SENDER);
+const { foundry, impersonatedSigner } = await init();
 
 // function setFlowrate(address SuperUSDC, address StreamManagementPod, int96 114155251141552512)
 
-const SUPERFLUID_ABI = [
-    "function setFlowrate(address tokenAddress, address receiverAddress, int96 amountPerSecond)",
-    "function getFlowrate(address tokenAddress, address sender, address receiver) external view returns (int96)"
-];
-
-const superfluidContract =  new Contract(SUPERFLUID_ADDR, SUPERFLUID_ABI, foundry.provider);
-
-const ERC20_ABI = [
-    "function approve(address spender, uint256 amount) external returns (bool)",
-    "function allowance(address owner, address spender) external view returns (uint256)",
-    "function balanceOf(address account) external view returns (uint256)",
-    "function decimals() external view returns (uint8)",
-];
-
-const USDCX_ABI = [
-    ...ERC20_ABI, 
-    "function upgrade(uint256 amount) external",
-    "function getUnderlyingToken() external view returns (address)",
-
-    "event AdminChanged(address indexed,address indexed)",
-    "event AgreementCreated(address indexed,bytes32,bytes32[])",
-    "event AgreementLiquidated(address indexed,bytes32,address indexed,address indexed,uint256)",
-    "event AgreementLiquidatedBy(address,address indexed,bytes32,address indexed,address indexed,uint256,uint256)",
-    "event AgreementLiquidatedV2(address indexed,bytes32,address indexed,address indexed,address,uint256,int256,bytes)",
-    "event AgreementStateUpdated(address indexed,address indexed,uint256)",
-    "event AgreementTerminated(address indexed,bytes32)",
-    "event AgreementUpdated(address indexed,bytes32,bytes32[])",
-    "event Approval(address indexed,address indexed,uint256)",
-    "event AuthorizedOperator(address indexed,address indexed)",
-    "event Bailout(address indexed,uint256)",
-    "event Burned(address indexed,address indexed,uint256,bytes,bytes)",
-    "event CodeUpdated(bytes32,address)",
-    "event Initialized(uint8)",
-    "event Minted(address indexed,address indexed,uint256,bytes,bytes)",
-    "event PoolAdminNFTCreated(address indexed)",
-    "event PoolMemberNFTCreated(address indexed)",
-    "event RevokedOperator(address indexed,address indexed)",
-    "event Sent(address indexed,address indexed,address indexed,uint256,bytes,bytes)",
-    "event TokenDowngraded(address indexed,uint256)",
-    "event TokenUpgraded(address indexed,uint256)",
-    "event Transfer(address indexed,address indexed,uint256)",
-];
-
-const USDCContract =  new Contract(USDC_ADDR, ERC20_ABI, foundry.provider);
-const USDCXContract =  new Contract(USDCX_ADDR, USDCX_ABI, foundry.provider);
+const USDCContract          =  new Contract(USDC_ADDR, ERC20_ABI, foundry.provider);
+const USDCXContract         =  new Contract(USDCX_ADDR, USDCX_ABI, foundry.provider);
+const superfluidContract    =  new Contract(SUPERFLUID_ADDR, SUPERFLUID_ABI, foundry.provider);
 
 const underlyingToken = await USDCXContract.getUnderlyingToken();
 console.log("Underlying Token:", underlyingToken);
@@ -104,11 +36,11 @@ console.log("USDCX Decimals:", USDCXDecimals);
 const USDCDivisor = BigInt(10) ** USDCDecimals; // Convert to BigInt
 const USDCXDivisor = BigInt(10) ** USDCXDecimals; // Convert to BigInt
 
-const USDCBalanceBefore = await USDCContract.balanceOf(SENDER);
+const USDCBalanceBefore = await USDCContract.balanceOf(SENDER_ADDR);
 console.log("USDCBalanceBefore", USDCBalanceBefore);
 console.log("USDCBalanceBefore Formatted", USDCBalanceBefore / USDCDivisor);
 
-const USDCXBalanceBefore = await USDCXContract.balanceOf(SENDER);
+const USDCXBalanceBefore = await USDCXContract.balanceOf(SENDER_ADDR);
 console.log("USDCXBalanceBefore", USDCXBalanceBefore);
 console.log("USDCXBalanceBefore Formatted", USDCXBalanceBefore / USDCXDivisor);
 
@@ -120,17 +52,12 @@ const UPFRONT_USDC_ALLOWANCE = 100000n;
 
 const AUTOWRAP_ALLOWANCE = TOTAL_YEARLY_FUNDING - UPFRONT_USDC_ALLOWANCE;
 
-
-const WRAP_MANAGER_ABI = [
-    "function createWrapSchedule(address superToken, address strategy, address liquidityToken, uint64 expiry, uint64 lowerLimit, uint64 upperLimit)"
-];
-
-const AutowrapManagerContract = new Contract(AUTOWRAP_MGR_ADDR, WRAP_MANAGER_ABI, foundry.provider);
+const AutowrapManagerContract = new Contract(AUTOWRAP_MANAGER_ADDR, AUTOWRAP_MANAGER_ABI, foundry.provider);
 
 /**
  * This function approves the Super USDCX contract to spend $100,000 of USDC on behalf of the sender, the ENS DAO wallet.
  */
-const approveUSDCX = async () => {
+export const approveUSDCX = async () => {
         
     console.log("-------------------");
     console.log("-------------------");
@@ -139,7 +66,7 @@ const approveUSDCX = async () => {
     console.log("-------------------");
 
     // Check the allowance before. Should be 0.
-    const USDCAllowanceBefore = await USDCContract.allowance(SENDER, USDCX_ADDR);
+    const USDCAllowanceBefore = await USDCContract.allowance(SENDER_ADDR, USDCX_ADDR);
     console.log("USDCAllowanceBefore", USDCAllowanceBefore);
 
     // We need to add the appropriate number of 0's for the USDC contract, 6
@@ -167,14 +94,14 @@ const approveUSDCX = async () => {
     // Send the transaction from the ENS DAO wallet to the USDC contract address
     const approveAllowanceTx = await impersonatedSigner.sendTransaction({
         to: USDC_ADDR,
-        from: SENDER,
+        from: SENDER_ADDR,
         data: approveAllowanceCalldata,
     });
 
     await approveAllowanceTx.wait();
 
     //Check that the allowance has been set correctly
-    const USDCAllowanceAfter = await USDCContract.allowance(SENDER, USDCX_ADDR);
+    const USDCAllowanceAfter = await USDCContract.allowance(SENDER_ADDR, USDCX_ADDR);
     console.log("USDCAllowanceAfter", USDCAllowanceAfter);
 
     console.log("");
@@ -187,7 +114,7 @@ const approveUSDCX = async () => {
  * This function 'upgrades' $100,000 USDC (that we just allowed) to USDCX.
  * Afterswards the ENS DAO wallet will have $100,000 more USDCX.
  */
-const upgradeUSDC = async () => {
+export const upgradeUSDC = async () => {
 
     console.log("-------------------");
     console.log("-------------------");
@@ -206,7 +133,7 @@ const upgradeUSDC = async () => {
     console.log(upgradeUSDCCalldata);
     console.log("-------------------");
 
-    const USDCXBalanceBeforeUpgrade = await USDCXContract.balanceOf(SENDER);
+    const USDCXBalanceBeforeUpgrade = await USDCXContract.balanceOf(SENDER_ADDR);
     console.log("USDCXBalanceBeforeUpgrade", USDCXBalanceBeforeUpgrade / USDCXDivisor);
 
     // They did 
@@ -217,7 +144,7 @@ const upgradeUSDC = async () => {
     // Send the transaction
     const upgradeUSDCTx = await impersonatedSigner.sendTransaction({
         to: USDCX_ADDR,
-        from: SENDER,
+        from: SENDER_ADDR,
         data: upgradeUSDCCalldata,
     });
 
@@ -233,7 +160,7 @@ const upgradeUSDC = async () => {
         }
     });
 
-    const USDCXBalanceAfterUpgrade = await USDCXContract.balanceOf(SENDER);
+    const USDCXBalanceAfterUpgrade = await USDCXContract.balanceOf(SENDER_ADDR);
     console.log("USDCXBalanceAfterUpgrade", USDCXBalanceAfterUpgrade / USDCXDivisor);
 
     console.log("");
@@ -247,7 +174,7 @@ const upgradeUSDC = async () => {
  * The flowrate of the Super USDCX token is 0.03802651753 USD per second which totals $1,200,000 per year.
  * Calculation: 1,200,000 / 31,556,926 = 0.03802651753 USD per second.
  */
-const setFlowrate = async () => {
+export const setFlowrate = async () => {
 
     console.log("-------------------");
     console.log("-------------------");
@@ -264,7 +191,7 @@ const setFlowrate = async () => {
 
     const setFlowrateCalldata = superfluidContract.interface.encodeFunctionData(
         "setFlowrate", 
-        [USDCX_ADDR, UNRUGGABLE_ADDRESS, USD_PER_SECOND]
+        [USDCX_ADDR, UNRUGGABLE_ADDR, USD_PER_SECOND]
     );
 
     console.log("-------------------");
@@ -278,7 +205,7 @@ const setFlowrate = async () => {
     // Send the transaction
     const tx = await impersonatedSigner.sendTransaction({
         to: SUPERFLUID_ADDR,
-        from: SENDER,
+        from: SENDER_ADDR,
         data: setFlowrateCalldata,
     });
 
@@ -289,7 +216,7 @@ const setFlowrate = async () => {
     console.log("Transaction Confirmed:", receipt.hash);
 
     //int96 expectedFlowRate = 114155251141550940;
-    const flowRate = await superfluidContract.getFlowrate(USDCX_ADDR, SENDER, UNRUGGABLE_ADDRESS);
+    const flowRate = await superfluidContract.getFlowrate(USDCX_ADDR, SENDER_ADDR, UNRUGGABLE_ADDR);
     console.log("Flow Rate:", flowRate);
 
     console.log("");
@@ -299,7 +226,7 @@ const setFlowrate = async () => {
 }
 
 
-const approveAutowrap = async () => {
+export const approveAutowrap = async () => {
 
     console.log("-------------------");
     console.log("-------------------");
@@ -308,7 +235,7 @@ const approveAutowrap = async () => {
     console.log("-------------------");
 
     // Check the allowance before. Should be 0.
-    const USDCAllowanceBefore = await USDCContract.allowance(SENDER, AUTOWRAP_STRATEGY_ADDR);
+    const USDCAllowanceBefore = await USDCContract.allowance(SENDER_ADDR, AUTOWRAP_STRATEGY_ADDR);
     console.log("Autowrap USDCAllowanceBefore", USDCAllowanceBefore);
 
     // We need to add the appropriate number of 0's for the USDC contract, 6
@@ -334,14 +261,14 @@ const approveAutowrap = async () => {
     // Send the transaction from the ENS DAO wallet to the USDC contract address
     const approveAllowanceTx = await impersonatedSigner.sendTransaction({
         to: USDC_ADDR,
-        from: SENDER,
+        from: SENDER_ADDR,
         data: approveAutowrapAllowanceCalldata,
     });
 
     await approveAllowanceTx.wait();
 
     //Check that the allowance has been set correctly
-    const USDCAllowanceAfter = await USDCContract.allowance(SENDER, AUTOWRAP_STRATEGY_ADDR);
+    const USDCAllowanceAfter = await USDCContract.allowance(SENDER_ADDR, AUTOWRAP_STRATEGY_ADDR);
     console.log("Autowrap USDCAllowanceAfter", USDCAllowanceAfter);
 
     console.log("");
@@ -351,7 +278,7 @@ const approveAutowrap = async () => {
 }
 
 
-const createAutowrapSchedule = async () => {
+export const createAutowrapSchedule = async () => {
 
     //Sat Jan 24 2065 05:20:00 GMT+0000
     const EXPIRY_TIME_FAR_IN_FUTURE = 3000000000;
@@ -382,7 +309,7 @@ const createAutowrapSchedule = async () => {
     // Send the transaction from the ENS DAO wallet to the USDC contract address
     const createWrapScheduleTx = await impersonatedSigner.sendTransaction({
         to: AUTOWRAP_MGR_ADDR,
-        from: SENDER,
+        from: SENDER_ADDR,
         data: createWrapScheduleCalldata,
     });
 
@@ -390,26 +317,3 @@ const createAutowrapSchedule = async () => {
 
     return createWrapScheduleCalldata;
 }
-
-
-const approveUSDCXCalldata = await approveUSDCX();
-const upgradeUSDCCalldata = await upgradeUSDC();
-const setFlowrateCalldata = await setFlowrate();
-const approveAutowrapCalldata = await approveAutowrap();
-//const createAutowrapCalldata = await createAutowrapSchedule();
-
-console.log("------------------------------------------");
-console.log("-------- CALL DATA FOR EXECUTABLE --------")
-console.log("------------------------------------------");
-
-console.log("------------------------------------------");
-console.log(approveUSDCXCalldata);
-console.log("------------------------------------------");
-console.log(upgradeUSDCCalldata);
-console.log("------------------------------------------");
-console.log(setFlowrateCalldata);
-console.log("------------------------------------------");
-console.log(approveAutowrapCalldata);
-console.log("------------------------------------------");
-//console.log(createAutowrapCalldata);
-//console.log("-------------------");
