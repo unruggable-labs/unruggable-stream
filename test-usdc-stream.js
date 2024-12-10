@@ -1,3 +1,12 @@
+// The below proposal was for setting up Service Provider streams
+// It is a useful example against which to sanity check Tenderly simulations
+// It this example the execute method is called on the ENSGovernor after the proposal has passed
+// The Timelock/'ENS: DAO Wallet' is the ultimate executor of the calldatas contained within
+// Hence why when simulating our transactions we do so as the Timelock/'ENS: DAO Wallet'
+// https://www.tally.xyz/gov/ens/proposal/63865530602418424570813160277709124551851041237648860550576561576702951975816
+// https://etherscan.io/tx/0x81b6b744ff95090b9d2727e7d5b6c9301e643a9de8305377011c2c5a4f11084a
+// https://dashboard.tenderly.co/tx/mainnet/0x81b6b744ff95090b9d2727e7d5b6c9301e643a9de8305377011c2c5a4f11084a
+
 import { Contract }                     from 'ethers';
 import { 
     ERC20_ABI, 
