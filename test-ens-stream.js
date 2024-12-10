@@ -24,26 +24,38 @@
 // The end result is that the Timelock/'ENS: DAO Wallet' will have created a vesting plan for the UNRUGGABLE_ADDRESS to receive 100,000 ENS tokens over 4 years. During that period Unruggable will be able to use them to take part in DAO Governance
 
 
-import { Contract } from 'ethers';
-import { UNRUGGABLE_ADDR, SENDER_ADDR, LOCKER_ADDR, ENS_TOKEN_ADDR, HEDGEY_BATCH_PLANNER_ADDR } from './addresses';
-import { ERC20_ABI, HEDGEY_BATCH_PLANNER_ABI } from './abis';
-import { init } from './utils';
+import { Contract }             from 'ethers';
+import { 
+    UNRUGGABLE_ADDR, 
+    SENDER_ADDR, 
+    LOCKER_ADDR, 
+    ENS_TOKEN_ADDR, 
+    HEDGEY_BATCH_PLANNER_ADDR 
+}                               from './addresses';
+import { 
+    ERC20_ABI, 
+    HEDGEY_BATCH_PLANNER_ABI 
+}                               from './abis';
+import { assert, init }         from './utils';
 
 const { foundry, impersonatedSigner } = await init();
 
-const ENSTokenContract =  new Contract(ENS_TOKEN_ADDR, ERC20_ABI, foundry.provider);
+// Contract instances
+const ENSTokenContract              =  new Contract(ENS_TOKEN_ADDR, ERC20_ABI, foundry.provider);
+const HedgeyBatchPlannerContract    = new Contract(HEDGEY_BATCH_PLANNER_ADDR, HEDGEY_BATCH_PLANNER_ABI, foundry.provider);
 
-const HedgeyBatchPlannerContract = new Contract(HEDGEY_BATCH_PLANNER_ADDR, HEDGEY_BATCH_PLANNER_ABI, foundry.provider);
-
-const ENS_ALLOWANCE = 100000n;
+// 24,000 ENS Tokens
+const ENS_ALLOWANCE = 24000n;
 
 const ENSDecimals = await ENSTokenContract.decimals();
+assert(ENSDecimals === 18n, "ENS Decimals should be 18");
 
-console.log("ENS Decimals:", ENSDecimals);
+const ENSDivisor = BigInt(10) ** ENSDecimals;
+assert(ENSDivisor === 1000000000000000000n, "Incorrect ENSDivisor");
 
-const ENSDivisor = BigInt(10) ** ENSDecimals; // Convert to BigInt
-
-
+/**
+ * This function approves the HEDGEY_BATCH_PLANNER_ADDR to spend 24,000 ENS tokens on behalf of the Timelock/'ENS: DAO Wallet'
+ */
 export const approveENS = async () => {
         
     console.log("-------------------");
@@ -52,32 +64,38 @@ export const approveENS = async () => {
     console.log("-------------------");
     console.log("-------------------");
 
-
     // Check the allowance before. Should be 0.
     const ENSAllowanceBefore = await ENSTokenContract.allowance(SENDER_ADDR, HEDGEY_BATCH_PLANNER_ADDR);
-    console.log("ENSAllowanceBefore", ENSAllowanceBefore);
+    assert(ENSAllowanceBefore === 0n, "Incorrect ENSAllowanceBefore");
 
     // We need to add the appropriate number of 0's for the ENS contract, 
     const ENS_ALLOWANCE_AMOUNT = ENS_ALLOWANCE * ENSDivisor;
-    //console.log("ENS_ALLOWANCE_AMOUNT", ENS_ALLOWANCE_AMOUNT);
-
-    // 300000000000
-    // 100000000000
+    assert(ENS_ALLOWANCE_AMOUNT === 24000000000000000000000n, "Incorrect ENS_ALLOWANCE_AMOUNT");
 
     // Generate the calldata for calling the approve function
-    const approveAllowanceCalldata = ENSTokenContract.interface.encodeFunctionData("approve", [HEDGEY_BATCH_PLANNER_ADDR, ENS_ALLOWANCE_AMOUNT]);
+    const approveAllowanceCalldata = ENSTokenContract.interface.encodeFunctionData(
+        "approve", 
+        [
+            HEDGEY_BATCH_PLANNER_ADDR, ENS_ALLOWANCE_AMOUNT
+        ]
+    );
     
+    // Log the calldata
     console.log("-------------------");
     console.log("approveAllowanceCalldata");
     console.log("-------------------");
     console.log(approveAllowanceCalldata);
     console.log("-------------------");
 
-
+    //////////////////////////////////////////////
+    // Comparison with Spene's TX (see top of page)
+    //////////////////////////////////////////////
     // They did
     // 0x095ea7b30000000000000000000000001ba8603da702602a8657980e825a6daa03dee93a00000000000000000000000000000000000000000000000000000045d964b800
-    // We did
+    //////////////////////////////////////////////
+    // We do
     // 0x095ea7b30000000000000000000000001ba8603da702602a8657980e825a6daa03dee93a000000000000000000000000000000000000000000000000000000174876e800
+    //////////////////////////////////////////////
 
     // Send the transaction from the ENS DAO wallet to the USDC contract address
     const approveAllowanceTx = await impersonatedSigner.sendTransaction({
@@ -86,22 +104,31 @@ export const approveENS = async () => {
         data: approveAllowanceCalldata,
     });
 
-    await approveAllowanceTx.wait();
+    const approveAllowanceReceipt = await approveAllowanceTx.wait();
 
     //Check that the allowance has been set correctly
-    const ENSAllowanceAfter = await ENSTokenContract.allowance(SENDER_ADDR, HEDGEY_BATCH_PLANNER_ADDR);
-    console.log("ENSAllowanceAfter", ENSAllowanceAfter);
+    const ENSAllowanceAfter = await ENSTokenContract.allowance(
+        SENDER_ADDR, 
+        HEDGEY_BATCH_PLANNER_ADDR
+    );
+    assert(ENSAllowanceAfter === ENS_ALLOWANCE_AMOUNT, "Incorrect ENSAllowanceAfter");
 
+    // Format output
     console.log("");
     console.log("");
 
+    // Return the calldata
     return approveAllowanceCalldata;
 }
 
-
+/**
+ * This function creates a vesting plan for the UNRUGGABLE_ADDR to receive 24,000 ENS tokens over 2 years with a 1 year cliff.
+ */
 export const createPlan = async () => {
 
     /*
+    // The definition of the batchVestingPlans function
+    //
     /// @notice function to create a batch of vesting plans.
     /// @dev the function will pull in the entire balance of totalAmount to the contract, increase the allowance and then via loop mint vesting plans
     /// @param locker is the address of the lockup plan that the tokens will be locked in, and NFT plan provided to
@@ -123,11 +150,9 @@ export const createPlan = async () => {
         uint8 mintType
     )
     */
-
-    //"function batchVestingPlans(address,address,uint256,(address,uint256,uint256,uint256,uint256)[],uint256,address,bool,uint8)"
-
-
+    
     /*
+    // The definition of the Plan struct
     struct Plan {
         address recipient;
         uint256 amount;
@@ -138,48 +163,55 @@ export const createPlan = async () => {
     */
 
     const TOTAL_ENS_AMOUNT = ENS_ALLOWANCE * ENSDivisor;
-    const currentTimestampSeconds = Math.floor(Date.now() / 1000);
+    assert(TOTAL_ENS_AMOUNT === 24000000000000000000000n, "Incorrect TOTAL_ENS_AMOUNT");
+    const CURRENT_TIMESTAMP_IN_SECONDS = Math.floor(Date.now() / 1000);
 
-    const SECONDS_IN_YEAR = 31536000n; //This is the number that Hedgey uses.
-    const NUMBER_OF_YEARS = 4n;
+    // This is the number that Hedgey uses.
+    const SECONDS_IN_YEAR = 31536000n;
+    const NUMBER_OF_YEARS = 2n;
     const ENS_PER_SECOND = TOTAL_ENS_AMOUNT / (SECONDS_IN_YEAR * NUMBER_OF_YEARS);
+    assert(ENS_PER_SECOND === 380517503805175n, "Incorrect ENS_PER_SECOND");
 
-    //792744799594114
-
-
-    console.log("ENS_PER_SECOND", ENS_PER_SECOND);
-
-
+    // https://hedgey.gitbook.io/hedgey-community-docs/for-developers/technical-documentation/token-vesting/integration-and-direct-contract-interactions
+    // The Hedgey docs say to 'use 1 for streaming version' 
     const PERIOD = 1;
+
+    // The Hedgey docs say to use 4 for mint type when directly interacting
+    // Mint type 7 is used for the Hedgey dApp to display things properly
+    // Regardless the `BatchPlanner` contract only emits it as part of the `BatchCreated` event
+    // And states '@dev event used for internal analytics and reporting only'
+    const MINT_TYPE = 4;
+
     const CAN_ADMIN_TRANSFER = true;
-    const MINT_TYPE = 7;
 
     // Generate the calldata to create the vesting plan
-    const batchVestingPlansCalldata = HedgeyBatchPlannerContract.interface.encodeFunctionData("batchVestingPlans", [
-        LOCKER_ADDR,
-        ENS_TOKEN_ADDR,
-        TOTAL_ENS_AMOUNT,
+    const batchVestingPlansCalldata = HedgeyBatchPlannerContract.interface.encodeFunctionData(
+        "batchVestingPlans", 
         [
+            LOCKER_ADDR,
+            ENS_TOKEN_ADDR,
+            TOTAL_ENS_AMOUNT,
             [
-                UNRUGGABLE_ADDR, 
-                TOTAL_ENS_AMOUNT, 
-                currentTimestampSeconds, 
-                currentTimestampSeconds, 
-                ENS_PER_SECOND,
+                [
+                    UNRUGGABLE_ADDR, 
+                    TOTAL_ENS_AMOUNT, 
+                    CURRENT_TIMESTAMP_IN_SECONDS, 
+                    CURRENT_TIMESTAMP_IN_SECONDS, 
+                    ENS_PER_SECOND,
+                ],
             ],
-        ],
-        PERIOD,
-        SENDER_ADDR,
-        CAN_ADMIN_TRANSFER,
-        MINT_TYPE
-    ]);
+            PERIOD,
+            SENDER_ADDR,
+            CAN_ADMIN_TRANSFER,
+            MINT_TYPE
+        ]
+    );
     
     console.log("-------------------");
     console.log("batchVestingPlansCalldata");
     console.log("-------------------");
     console.log(batchVestingPlansCalldata);
     console.log("-------------------");
-
 
     // Send the transaction from the ENS DAO wallet to the USDC contract address
     const batchVestingPlansTx = await impersonatedSigner.sendTransaction({
@@ -188,7 +220,12 @@ export const createPlan = async () => {
         data: batchVestingPlansCalldata,
     });
 
-    await batchVestingPlansTx.wait();
+    const batchVestingPlansReceipt = await batchVestingPlansTx.wait();
     
+    // Format output
+    console.log("");
+    console.log("");
+
+    // Return the calldata
     return batchVestingPlansCalldata;
 }

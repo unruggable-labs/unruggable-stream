@@ -1,4 +1,4 @@
-import { simulateTransactionBundle }    from './utils';
+import { assert, simulateTransactionBundle }    from './utils';
 import { 
     approveUSDCX, 
     upgradeUSDC, 
@@ -17,6 +17,8 @@ import {
 import { init }                         from './utils';
 
 const { foundry, impersonatedSigner } = await init();
+
+assert(impersonatedSigner.address == SENDER_ADDR, "Impersonated signer is not the ENS DAO Wallet/Timelock");
 
 //////////////////////////////
 // USDC Stream Transactions //
@@ -72,7 +74,7 @@ const transactions = [
         to: USDC_ADDR,
         input: approveUSDCXCalldata,
     },
-    {
+   {
         from: SENDER_ADDR, 
         to: USDCX_ADDR,
         input: upgradeUSDCCalldata,

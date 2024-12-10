@@ -14,12 +14,13 @@
 ## Example Simulations
 If you don't want to run the Tenderly simulations, here are some examples:
 
+
 **USDC Stream**
-- `approve` - https://www.tdly.co/shared/simulation/958f69ed-849d-4ed5-8816-b5a266b17fd7
-- `upgrade` - https://www.tdly.co/shared/simulation/acac9227-189e-4a36-a4a2-a0c9d7bf6e51
-- `setFlowrate` - https://www.tdly.co/shared/simulation/448484df-ff80-4113-a767-ef6a7438fc18
-- `approve` - https://www.tdly.co/shared/simulation/10bc1cd4-7f16-41c7-89d7-093f19231fd6
+- `approve` - https://www.tdly.co/shared/simulation/6aefdafc-310a-4eba-800a-8eb17d09dcdc
+- `upgrade` - https://www.tdly.co/shared/simulation/04eb112f-4433-4710-a72e-de9a8452a53b
+- `setFlowrate` - https://www.tdly.co/shared/simulation/890cd8d9-ee3f-4218-a259-616e738b2d72
+- `approve` - https://www.tdly.co/shared/simulation/b310bf57-151a-4ca1-a51a-829327dad6d2
 
 **ENS Stream**
-- `approve` - https://www.tdly.co/shared/simulation/f33f573d-459a-495b-9fdf-369a14b06c23
-- `batchVestingPlans` - https://www.tdly.co/shared/simulation/b254299e-758f-4182-bf23-9d3b5d6306a2
+- `approve` - https://www.tdly.co/shared/simulation/8f7e0e2e-ce5a-4fe9-8533-9754296555c7
+- `batchVestingPlans` - https://www.tdly.co/shared/simulation/4542cad7-0f17-4fa0-bedc-37290088892c

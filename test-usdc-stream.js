@@ -23,45 +23,48 @@ import {
     AUTOWRAP_STRATEGY_ADDR, 
     UNRUGGABLE_ADDR 
 }                                       from './addresses';
-import { init }                         from './utils';
+import { init, assert }                 from './utils';
 
 const { foundry, impersonatedSigner } = await init();
 
-// function setFlowrate(address SuperUSDC, address StreamManagementPod, int96 114155251141552512)
-
-const USDCContract          =  new Contract(USDC_ADDR, ERC20_ABI, foundry.provider);
-const USDCXContract         =  new Contract(USDCX_ADDR, USDCX_ABI, foundry.provider);
-const superfluidContract    =  new Contract(SUPERFLUID_ADDR, SUPERFLUID_ABI, foundry.provider);
+// Contract instances
+const USDCContract              =  new Contract(USDC_ADDR, ERC20_ABI, foundry.provider);
+const USDCXContract             =  new Contract(USDCX_ADDR, USDCX_ABI, foundry.provider);
+const SuperfluidContract        =  new Contract(SUPERFLUID_ADDR, SUPERFLUID_ABI, foundry.provider);
+const AutowrapManagerContract   = new Contract(AUTOWRAP_MANAGER_ADDR, AUTOWRAP_MANAGER_ABI, foundry.provider);
 
 const underlyingToken = await USDCXContract.getUnderlyingToken();
-console.log("Underlying Token:", underlyingToken);
+assert(underlyingToken === USDC_ADDR, "Underlying token is not USDC");
 
 const USDCDecimals = await USDCContract.decimals();
+assert(USDCDecimals === 6n, "USDC Decimals are not 6");
+
 const USDCXDecimals = await USDCXContract.decimals();
+assert(USDCXDecimals === 18n, "USDCX Decimals are not 18");
 
-console.log("USDC Decimals:", USDCDecimals);
-console.log("USDCX Decimals:", USDCXDecimals);
+const USDCDivisor = BigInt(10) ** USDCDecimals;
+assert(USDCDivisor === 1000000n, "USDC Divisor is not 1000000");
 
-const USDCDivisor = BigInt(10) ** USDCDecimals; // Convert to BigInt
-const USDCXDivisor = BigInt(10) ** USDCXDecimals; // Convert to BigInt
+const USDCXDivisor = BigInt(10) ** USDCXDecimals;
+assert(USDCXDivisor === 1000000000000000000n, "USDCX Divisor is not 1000000000000000000");
 
+// For debugging/interest
 const USDCBalanceBefore = await USDCContract.balanceOf(SENDER_ADDR);
-console.log("USDCBalanceBefore", USDCBalanceBefore);
-console.log("USDCBalanceBefore Formatted", USDCBalanceBefore / USDCDivisor);
-
+//console.log("USDCBalanceBefore", USDCBalanceBefore);
+//console.log("USDCBalanceBefore Formatted", USDCBalanceBefore / USDCDivisor);
 const USDCXBalanceBefore = await USDCXContract.balanceOf(SENDER_ADDR);
-console.log("USDCXBalanceBefore", USDCXBalanceBefore);
-console.log("USDCXBalanceBefore Formatted", USDCXBalanceBefore / USDCXDivisor);
+//console.log("USDCXBalanceBefore", USDCXBalanceBefore);
+//console.log("USDCXBalanceBefore Formatted", USDCXBalanceBefore / USDCXDivisor);
 
 // The yearly USDC funding amount is $1,200,000
 const TOTAL_YEARLY_FUNDING = 1200000n;
-
 // The upfront allowance is $100,000 USDC, 1 months worth of funding.
 const UPFRONT_USDC_ALLOWANCE = 100000n;
-
+// The amount that we will increase the autowrap allowance by is $1,100,000 USDC, 11 months worth of funding.
+// INCREASE - the autowrap strategy is used by '[EP5.2] [Executable] Commence Streams for Service Providers' too.
+// See https://www.tally.xyz/gov/ens/proposal/63865530602418424570813160277709124551851041237648860550576561576702951975816
 const AUTOWRAP_ALLOWANCE = TOTAL_YEARLY_FUNDING - UPFRONT_USDC_ALLOWANCE;
-
-const AutowrapManagerContract = new Contract(AUTOWRAP_MANAGER_ADDR, AUTOWRAP_MANAGER_ABI, foundry.provider);
+assert(AUTOWRAP_ALLOWANCE === 1100000n, "Autowrap allowance is not 1100000");
 
 /**
  * This function approves the Super USDCX contract to spend $100,000 of USDC on behalf of the sender, the ENS DAO wallet.
@@ -76,29 +79,31 @@ export const approveUSDCX = async () => {
 
     // Check the allowance before. Should be 0.
     const USDCAllowanceBefore = await USDCContract.allowance(SENDER_ADDR, USDCX_ADDR);
-    console.log("USDCAllowanceBefore", USDCAllowanceBefore);
+    assert(USDCAllowanceBefore === 0n, "USDC Allowance Before is not 0");
 
     // We need to add the appropriate number of 0's for the USDC contract, 6
     const USDC_ALLOWANCE_AMOUNT = UPFRONT_USDC_ALLOWANCE * USDCDivisor;
-    //console.log("USDC_ALLOWANCE_AMOUNT", USDC_ALLOWANCE_AMOUNT);
-
-    // 300000000000
-    // 100000000000
+    assert(USDC_ALLOWANCE_AMOUNT === 100000000000n, "USDC Allowance Amount is not 100000000000");
 
     // Generate the calldata for calling the approve function
     const approveAllowanceCalldata = USDCContract.interface.encodeFunctionData("approve", [USDCX_ADDR, USDC_ALLOWANCE_AMOUNT]);
     
+    // Log the calldata
     console.log("-------------------");
     console.log("approveAllowanceCalldata");
     console.log("-------------------");
     console.log(approveAllowanceCalldata);
     console.log("-------------------");
 
-
+    //////////////////////////////////////////////
+    // Comparison with '[EP5.2] [Executable] Commence Streams for Service Providers'
+    //////////////////////////////////////////////
     // They did
     // 0x095ea7b30000000000000000000000001ba8603da702602a8657980e825a6daa03dee93a00000000000000000000000000000000000000000000000000000045d964b800
-    // We did
+    //////////////////////////////////////////////
+    // We do
     // 0x095ea7b30000000000000000000000001ba8603da702602a8657980e825a6daa03dee93a000000000000000000000000000000000000000000000000000000174876e800
+    //////////////////////////////////////////////
 
     // Send the transaction from the ENS DAO wallet to the USDC contract address
     const approveAllowanceTx = await impersonatedSigner.sendTransaction({
@@ -107,21 +112,24 @@ export const approveUSDCX = async () => {
         data: approveAllowanceCalldata,
     });
 
-    await approveAllowanceTx.wait();
+    const approveReceipt = await approveAllowanceTx.wait();
 
     //Check that the allowance has been set correctly
     const USDCAllowanceAfter = await USDCContract.allowance(SENDER_ADDR, USDCX_ADDR);
-    console.log("USDCAllowanceAfter", USDCAllowanceAfter);
+    assert(USDCAllowanceAfter === USDC_ALLOWANCE_AMOUNT, "USDC Allowance After is not 100000000000");
 
+    // Format output
     console.log("");
     console.log("");
 
+    // Return the calldata
     return approveAllowanceCalldata;
 }
 
 /**
- * This function 'upgrades' $100,000 USDC (that we just allowed) to USDCX.
- * Afterswards the ENS DAO wallet will have $100,000 more USDCX.
+ * This function 'upgrades' $100,000 USDC from the ENS DAO wallet/'Timelock' to USDCX.
+ * This is possible after setting the allowance in the approveUSDCX function.
+ * Afterwards the ENS DAO wallet will have $100,000 more USDCX, and $100,000 less USDC.
  */
 export const upgradeUSDC = async () => {
 
@@ -131,24 +139,30 @@ export const upgradeUSDC = async () => {
     console.log("-------------------");
     console.log("-------------------");
 
-    // 300000000000000000000000
-    // 100000000000000000000000n
-    console.log("USDC_ALLOWANCE * USDCDivisor", UPFRONT_USDC_ALLOWANCE * USDCXDivisor);
-    const upgradeUSDCCalldata = USDCXContract.interface.encodeFunctionData("upgrade", [UPFRONT_USDC_ALLOWANCE * USDCXDivisor]);
+    const USDC_UPGRADE_AMOUNT = UPFRONT_USDC_ALLOWANCE * USDCDivisor;
+    assert(USDC_UPGRADE_AMOUNT === 100000000000n, "USDC Upgrade Amount is not 100000000000");
+    const upgradeUSDCCalldata = USDCXContract.interface.encodeFunctionData("upgrade", [USDC_UPGRADE_AMOUNT]);
 
+    // Log the calldata
     console.log("-------------------");
     console.log("upgradeUSDCCalldata");
     console.log("-------------------");
     console.log(upgradeUSDCCalldata);
     console.log("-------------------");
 
+    // The USDCX balance of the DAO wallet is affected independently of this executable - this could be anything
     const USDCXBalanceBeforeUpgrade = await USDCXContract.balanceOf(SENDER_ADDR);
-    console.log("USDCXBalanceBeforeUpgrade", USDCXBalanceBeforeUpgrade / USDCXDivisor);
+    //console.log("USDCXBalanceBeforeUpgrade", USDCXBalanceBeforeUpgrade / USDCXDivisor);
 
-    // They did 
+    //////////////////////////////////////////////
+    // Comparison with '[EP5.2] [Executable] Commence Streams for Service Providers'
+    //////////////////////////////////////////////
+    // They did
     // 0x45977d03000000000000000000000000000000000000000000003f870857a3e0e3800000
-    // We did
+    //////////////////////////////////////////////
+    // We do
     // 0x45977d0300000000000000000000000000000000000000000000152d02c7e14af6800000
+    //////////////////////////////////////////////
 
     // Send the transaction
     const upgradeUSDCTx = await impersonatedSigner.sendTransaction({
@@ -158,7 +172,6 @@ export const upgradeUSDC = async () => {
     });
 
     const upgradeReceipt =  await upgradeUSDCTx.wait();
-    console.log("Upgrade Transaction Confirmed");
 
     upgradeReceipt.logs.forEach((log) => {
         try {
@@ -170,11 +183,17 @@ export const upgradeUSDC = async () => {
     });
 
     const USDCXBalanceAfterUpgrade = await USDCXContract.balanceOf(SENDER_ADDR);
-    console.log("USDCXBalanceAfterUpgrade", USDCXBalanceAfterUpgrade / USDCXDivisor);
 
+    //USDCX has 18 decimals, USDC has 6. The before/after assertion needs to made considering the conversion.
+    const USDCX_UPGRADE_AMOUNT = UPFRONT_USDC_ALLOWANCE * USDCXDivisor;
+    const USDCX_BALANCE_DIFFERENCE = ((USDCXBalanceBeforeUpgrade + USDCX_UPGRADE_AMOUNT) - USDCXBalanceAfterUpgrade) / USDCXDivisor;
+    assert(USDCX_BALANCE_DIFFERENCE == 100000n, "Formatted USDCX Balance After Upgrade is not 100000n");
+
+    // Format output
     console.log("");
     console.log("");
 
+    // Return the calldata
     return upgradeUSDCCalldata;
 }
 
@@ -192,24 +211,52 @@ export const setFlowrate = async () => {
     console.log("-------------------");
 
     const USD_PER_YEAR = 1200000n;
+    // "There are 31,556,926 seconds in a year. While leap years account for most of the drift, 
+    // you must skip a leap year in years that are divisible by 100 and not divisible by 400 to 
+    // account for the slight variation. Then we also add leap seconds every now and again. 
+    // We had one in 2016."
     const SECONDS_IN_YEAR = 31556926n;
     const USD_PER_SECOND = (USD_PER_YEAR * USDCXDivisor) / SECONDS_IN_YEAR;
+    assert(USD_PER_SECOND === 38026517538495352n, "USD Per Second is not 38026517538495352");
 
-    // Should be 38026517538495352n
-    console.log("USD_PER_SECOND", USD_PER_SECOND);
-
-    const setFlowrateCalldata = superfluidContract.interface.encodeFunctionData(
+    // Generate the calldata for calling the setFlowrate function
+    const setFlowrateCalldata = SuperfluidContract.interface.encodeFunctionData(
         "setFlowrate", 
-        [USDCX_ADDR, UNRUGGABLE_ADDR, USD_PER_SECOND]
+        [
+            USDCX_ADDR, 
+            UNRUGGABLE_ADDR, 
+            USD_PER_SECOND
+        ]
     );
 
+    // Log the calldata
     console.log("-------------------");
     console.log("setFlowrateCalldata");
     console.log("-------------------");
     console.log(setFlowrateCalldata);
     console.log("-------------------");
 
-    console.log("Impersonated Signer:", impersonatedSigner.address);
+    //////////////////////////////////////////////
+    // Comparison with '[EP5.2] [Executable] Commence Streams for Service Providers'
+    //////////////////////////////////////////////
+    // They did
+    // 0x57e6aa36
+    // 0000000000000000000000001ba8603d
+    // a702602a8657980e825a6daa03dee93a
+    // 000000000000000000000000b162bf7a
+    // 7fd64ef32b787719335d06b2780e31d1
+    // 00000000000000000000000000000000
+    // 000000000000000001958f989989a980
+    //////////////////////////////////////////////
+    // We do
+    // 0x57e6aa36
+    // 0000000000000000000000001ba8603d
+    // a702602a8657980e825a6daa03dee93a
+    // 00000000000000000000000064ca550f
+    // 78d6cc711b247319cc71a04a166707ab
+    // 00000000000000000000000000000000
+    // 0000000000000000008718ea8ded5b78
+    //////////////////////////////////////////////
 
     // Send the transaction
     const tx = await impersonatedSigner.sendTransaction({
@@ -218,23 +265,26 @@ export const setFlowrate = async () => {
         data: setFlowrateCalldata,
     });
 
-    console.log("Transaction Hash:", tx.hash);
-
     // Wait for confirmation
-    const receipt = await tx.wait();
-    console.log("Transaction Confirmed:", receipt.hash);
+    const setFlowrateReceipt = await tx.wait();
 
-    //int96 expectedFlowRate = 114155251141550940;
-    const flowRate = await superfluidContract.getFlowrate(USDCX_ADDR, SENDER_ADDR, UNRUGGABLE_ADDR);
-    console.log("Flow Rate:", flowRate);
+    const flowRate = await SuperfluidContract.getFlowrate(USDCX_ADDR, SENDER_ADDR, UNRUGGABLE_ADDR);
+    assert(flowRate === 38026517538495352n, "Flowrate is not 38026517538495352");
 
+    // Format output
     console.log("");
     console.log("");
 
+    // Return the calldata
     return setFlowrateCalldata;
 }
 
-
+/**
+ * This function INCREASES the amount of USDC (owned by the ENS DAO wallet/Timelock) that the Autowrap strategy contract is able to spend.
+ * The increase is $1,100,000 USDC which covers the remaining 11 months of funding.
+ * The allowance is specifically INCREASED rather than explicitly SET noting that the Autowrap strategy is used by 
+ * '[EP5.2] [Executable] Commence Streams for Service Providers' too.
+ */
 export const approveAutowrap = async () => {
 
     console.log("-------------------");
@@ -243,29 +293,41 @@ export const approveAutowrap = async () => {
     console.log("-------------------");
     console.log("-------------------");
 
-    // Check the allowance before. Should be 0.
+    // The USDC balance of the DAO wallet is affected independently of this executable - this could be anything
     const USDCAllowanceBefore = await USDCContract.allowance(SENDER_ADDR, AUTOWRAP_STRATEGY_ADDR);
-    console.log("Autowrap USDCAllowanceBefore", USDCAllowanceBefore);
+    //console.log("Autowrap USDCAllowanceBefore", USDCAllowanceBefore);
 
     // We need to add the appropriate number of 0's for the USDC contract, 6
     const USDC_ALLOWANCE_AMOUNT = AUTOWRAP_ALLOWANCE * USDCDivisor;
-    //console.log("Autowrap USDC_ALLOWANCE_AMOUNT", USDC_ALLOWANCE_AMOUNT);
+    assert(USDC_ALLOWANCE_AMOUNT === 1100000000000n, "USDC Allowance Amount is not 1100000000000");
 
     const newAllowance = USDCAllowanceBefore + USDC_ALLOWANCE_AMOUNT;
 
     // Generate the calldata for calling the approve function
-    const approveAutowrapAllowanceCalldata = USDCContract.interface.encodeFunctionData("approve", [AUTOWRAP_STRATEGY_ADDR, newAllowance]);
+    const approveAutowrapAllowanceCalldata = USDCContract.interface.encodeFunctionData(
+        "approve", 
+        [
+            AUTOWRAP_STRATEGY_ADDR,
+            newAllowance
+        ]
+    );
     
+    // Log the calldata
     console.log("-------------------");
     console.log("approveAutowrapAllowanceCalldata");
     console.log("-------------------");
     console.log(approveAutowrapAllowanceCalldata);
     console.log("-------------------");
 
+    //////////////////////////////////////////////
+    // Comparison with '[EP5.2] [Executable] Commence Streams for Service Providers'
+    //////////////////////////////////////////////
     // They did
     // 0x095ea7b30000000000000000000000001d65c6d3ad39d454ea8f682c49ae7744706ea96d000000000000000000000000000000000000000000000000000004a36fb03800
-    // We did
+    //////////////////////////////////////////////
+    // We do
     // 0x095ea7b30000000000000000000000001d65c6d3ad39d454ea8f682c49ae7744706ea96d0000000000000000000000000000000000000000000000000000027fce4c3eeb
+    //////////////////////////////////////////////
 
     // Send the transaction from the ENS DAO wallet to the USDC contract address
     const approveAllowanceTx = await impersonatedSigner.sendTransaction({
@@ -274,46 +336,92 @@ export const approveAutowrap = async () => {
         data: approveAutowrapAllowanceCalldata,
     });
 
-    await approveAllowanceTx.wait();
+    const approveAllowanceReceipt = await approveAllowanceTx.wait();
 
     //Check that the allowance has been set correctly
-    const USDCAllowanceAfter = await USDCContract.allowance(SENDER_ADDR, AUTOWRAP_STRATEGY_ADDR);
+    const USDCAllowanceAfter = await USDCContract.allowance(
+        SENDER_ADDR, 
+        AUTOWRAP_STRATEGY_ADDR
+    );
     console.log("Autowrap USDCAllowanceAfter", USDCAllowanceAfter);
+    assert(USDCAllowanceAfter === newAllowance, `USDC Allowance After is not ${newAllowance}`);
 
+    // Format output
     console.log("");
     console.log("");
 
+    // Return the calldata
     return approveAutowrapAllowanceCalldata;
 }
 
 
+/**
+ * !! UNUSED !!
+ * Left here for reference.
+ * We do not need to create a new autowrap schedule for each stream.
+ * We utilize the same schedule as '[EP5.2] [Executable] Commence Streams for Service Providers'
+ */
 export const createAutowrapSchedule = async () => {
 
-    //Sat Jan 24 2065 05:20:00 GMT+0000
+    // This is the current value as defined in '[EP5.2] [Executable] Commence Streams for Service Providers'
+    // Sat Jan 24 2065 05:20:00 GMT+0000
     const EXPIRY_TIME_FAR_IN_FUTURE = 3000000000;
     const TWENTY_ONE_DAYS_IN_SECONDS = 1814400;
     const FIFTY_DAYS_IN_SECONDS = 4320000;
 
     // Generate the calldata for calling the createWrapSchedule function
-    const createWrapScheduleCalldata = AutowrapManagerContract.interface.encodeFunctionData("createWrapSchedule", [
-        USDCX_ADDR, 
-        AUTOWRAP_STRATEGY_ADDR, 
-        USDC_ADDR, 
-        EXPIRY_TIME_FAR_IN_FUTURE, 
-        TWENTY_ONE_DAYS_IN_SECONDS, 
-        FIFTY_DAYS_IN_SECONDS
-    ]);
+    const createWrapScheduleCalldata = AutowrapManagerContract.interface.encodeFunctionData(
+        "createWrapSchedule", 
+        [
+            USDCX_ADDR, 
+            AUTOWRAP_STRATEGY_ADDR, 
+            USDC_ADDR, 
+            EXPIRY_TIME_FAR_IN_FUTURE, 
+            TWENTY_ONE_DAYS_IN_SECONDS, 
+            FIFTY_DAYS_IN_SECONDS
+        ]
+    );
 
+    // Log the calldata
     console.log("-------------------");
     console.log("createWrapScheduleCalldata");
     console.log("-------------------");
     console.log(createWrapScheduleCalldata);
     console.log("-------------------");
 
+    //////////////////////////////////////////////
+    // Comparison with '[EP5.2] [Executable] Commence Streams for Service Providers'
+    //////////////////////////////////////////////
     // They did
-    //0x5626f9e60000000000000000000000001ba8603da702602a8657980e825a6daa03dee93a0000000000000000000000001d65c6d3ad39d454ea8f682c49ae7744706ea96d000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb4800000000000000000000000000000000000000000000000000000000b2d05e0000000000000000000000000000000000000000000000000000000000001baf80000000000000000000000000000000000000000000000000000000000041eb00
-    // We did
-    // 0x5626f9e60000000000000000000000001ba8603da702602a8657980e825a6daa03dee93a0000000000000000000000001d65c6d3ad39d454ea8f682c49ae7744706ea96d000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb4800000000000000000000000000000000000000000000000000000000b2d05e0000000000000000000000000000000000000000000000000000000000001baf80000000000000000000000000000000000000000000000000000000000041eb00
+    // 0x5626f9e6
+    // 0000000000000000000000001ba8603d
+    // a702602a8657980e825a6daa03dee93a
+    // 0000000000000000000000001d65c6d3
+    // ad39d454ea8f682c49ae7744706ea96d
+    // 000000000000000000000000a0b86991
+    // c6218b36c1d19d4a2e9eb0ce3606eb48
+    // 00000000000000000000000000000000
+    // 000000000000000000000000b2d05e00
+    // 00000000000000000000000000000000
+    // 000000000000000000000000001baf80
+    // 00000000000000000000000000000000
+    // 0000000000000000000000000041eb00
+    //////////////////////////////////////////////
+    // We do
+    // 0x5626f9e6
+    // 0000000000000000000000001ba8603d
+    // a702602a8657980e825a6daa03dee93a
+    // 0000000000000000000000001d65c6d3
+    // ad39d454ea8f682c49ae7744706ea96d
+    // 000000000000000000000000a0b86991
+    // c6218b36c1d19d4a2e9eb0ce3606eb48
+    // 00000000000000000000000000000000
+    // 000000000000000000000000b2d05e00
+    // 00000000000000000000000000000000
+    // 000000000000000000000000001baf80
+    // 00000000000000000000000000000000
+    // 0000000000000000000000000041eb00
+    //////////////////////////////////////////////
 
     // Send the transaction from the ENS DAO wallet to the USDC contract address
     const createWrapScheduleTx = await impersonatedSigner.sendTransaction({
@@ -322,7 +430,8 @@ export const createAutowrapSchedule = async () => {
         data: createWrapScheduleCalldata,
     });
 
-    await createWrapScheduleTx.wait();
+    const createWrapScheduleReceipt = await createWrapScheduleTx.wait();
 
+    // Return the calldata
     return createWrapScheduleCalldata;
 }
