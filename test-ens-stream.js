@@ -168,12 +168,15 @@ export const createPlan = async () => {
     }
     */
 
-    const TOTAL_ENS_AMOUNT = ENS_ALLOWANCE * ENSDivisor;
-    assert(TOTAL_ENS_AMOUNT === 24000000000000000000000n, "Incorrect TOTAL_ENS_AMOUNT");
-    const CURRENT_TIMESTAMP_IN_SECONDS = Math.floor(Date.now() / 1000);
-
     // This is the number that Hedgey uses.
     const SECONDS_IN_YEAR = 31536000n;
+    const TOTAL_ENS_AMOUNT = ENS_ALLOWANCE * ENSDivisor;
+    assert(TOTAL_ENS_AMOUNT === 24000000000000000000000n, "Incorrect TOTAL_ENS_AMOUNT");
+    const CURRENT_TIMESTAMP_IN_SECONDS = BigInt(Math.floor(Date.now() / 1000));
+    const ONE_WEEK_IN_SECONDS = 7n * 24n * 60n * 60n;
+    const START_TIMESTAMP = CURRENT_TIMESTAMP_IN_SECONDS + ONE_WEEK_IN_SECONDS;
+    const CLIFF_TIMESTAMP = START_TIMESTAMP + SECONDS_IN_YEAR;
+
     const NUMBER_OF_YEARS = 2n;
     const ENS_PER_SECOND = TOTAL_ENS_AMOUNT / (SECONDS_IN_YEAR * NUMBER_OF_YEARS);
     assert(ENS_PER_SECOND === 380517503805175n, "Incorrect ENS_PER_SECOND");
@@ -199,8 +202,8 @@ export const createPlan = async () => {
             [
                 UNRUGGABLE_ADDR, 
                 TOTAL_ENS_AMOUNT, 
-                CURRENT_TIMESTAMP_IN_SECONDS, 
-                CURRENT_TIMESTAMP_IN_SECONDS, 
+                START_TIMESTAMP, 
+                CLIFF_TIMESTAMP, 
                 ENS_PER_SECOND,
             ],
         ],

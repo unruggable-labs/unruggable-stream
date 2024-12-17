@@ -14,11 +14,11 @@
 ## Simulations
 
 **USDC Stream**
-- `approve` - https://www.tdly.co/shared/simulation/1e048232-2ed0-4bdf-876a-c91b2547d6fc
-- `upgrade` - https://www.tdly.co/shared/simulation/f569c5b3-24ed-4dba-8f2c-ce18e8d96b86
-- `setFlowrate` - https://www.tdly.co/shared/simulation/21a8efda-3ccb-4bae-a864-2ff95b42e7fb
-- `increaseAllowance` - https://www.tdly.co/shared/simulation/878aa91f-c30a-47a3-92de-05ac8573351f
+- `approve` - https://www.tdly.co/shared/simulation/7a33ba80-767d-4764-891f-b93690ad7b25
+- `upgrade` - https://www.tdly.co/shared/simulation/d564e4b9-3c5d-4e90-91f7-9ae78e32fbd1
+- `setFlowrate` - https://www.tdly.co/shared/simulation/725d872b-8174-4fa5-a60b-5d45eea1812f
+- `increaseAllowance` - https://www.tdly.co/shared/simulation/d94d705b-0025-4500-b5d0-e4eba5221abe
 
 **ENS Stream**
-- `approve` - https://www.tdly.co/shared/simulation/8244d53c-c2b1-476a-9213-2a584c562f99
-- `batchVestingPlans` - https://www.tdly.co/shared/simulation/d7319c52-5618-4476-b3cb-8c78ebf798b3
+- `approve` - https://www.tdly.co/shared/simulation/82838efa-2dda-4660-abf7-991f2787388a
+- `batchVestingPlans` - https://www.tdly.co/shared/simulation/d33f9323-8ec0-4402-a458-265b7fa546f7
