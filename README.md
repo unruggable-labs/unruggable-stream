@@ -11,16 +11,14 @@
 
 - Run `bun run run-it.ts`
 
-## Example Simulations
-If you don't want to run the Tenderly simulations, here are some examples:
-
+## Simulations
 
 **USDC Stream**
-- `approve` - https://www.tdly.co/shared/simulation/6aefdafc-310a-4eba-800a-8eb17d09dcdc
-- `upgrade` - https://www.tdly.co/shared/simulation/04eb112f-4433-4710-a72e-de9a8452a53b
-- `setFlowrate` - https://www.tdly.co/shared/simulation/890cd8d9-ee3f-4218-a259-616e738b2d72
-- `approve` - https://www.tdly.co/shared/simulation/b310bf57-151a-4ca1-a51a-829327dad6d2
+- `approve` - https://www.tdly.co/shared/simulation/1e048232-2ed0-4bdf-876a-c91b2547d6fc
+- `upgrade` - https://www.tdly.co/shared/simulation/f569c5b3-24ed-4dba-8f2c-ce18e8d96b86
+- `setFlowrate` - https://www.tdly.co/shared/simulation/21a8efda-3ccb-4bae-a864-2ff95b42e7fb
+- `increaseAllowance` - https://www.tdly.co/shared/simulation/878aa91f-c30a-47a3-92de-05ac8573351f
 
 **ENS Stream**
-- `approve` - https://www.tdly.co/shared/simulation/8f7e0e2e-ce5a-4fe9-8533-9754296555c7
-- `batchVestingPlans` - https://www.tdly.co/shared/simulation/4542cad7-0f17-4fa0-bedc-37290088892c
+- `approve` - https://www.tdly.co/shared/simulation/8244d53c-c2b1-476a-9213-2a584c562f99
+- `batchVestingPlans` - https://www.tdly.co/shared/simulation/d7319c52-5618-4476-b3cb-8c78ebf798b3

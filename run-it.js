@@ -3,7 +3,7 @@ import {
     approveUSDCX, 
     upgradeUSDC, 
     setFlowrate, 
-    approveAutowrap 
+    increaseAutowrapAllowance 
 }                                       from './test-usdc-stream';
 import { approveENS, createPlan }       from './test-ens-stream';
 import { 
@@ -26,7 +26,7 @@ assert(impersonatedSigner.address == SENDER_ADDR, "Impersonated signer is not th
 const approveUSDCXCalldata = await approveUSDCX();
 const upgradeUSDCCalldata = await upgradeUSDC();
 const setFlowrateCalldata = await setFlowrate();
-const approveAutowrapCalldata = await approveAutowrap();
+const increaseAutowrapAllowanceCalldata = await increaseAutowrapAllowance();
 // We don't need to create a new autowrap schedule for each stream.
 // const createAutowrapCalldata = await createAutowrapSchedule();
 
@@ -41,10 +41,8 @@ console.log(upgradeUSDCCalldata);
 console.log("------------------------------------------");
 console.log(setFlowrateCalldata);
 console.log("------------------------------------------");
-console.log(approveAutowrapCalldata);
+console.log(increaseAutowrapAllowanceCalldata);
 console.log("------------------------------------------");
-//console.log(createAutowrapCalldata);
-//console.log("-------------------");
 
 //////////////////////////////
 // ENS Stream Transactions //
@@ -87,7 +85,7 @@ const transactions = [
     {
         from: SENDER_ADDR, 
         to: USDC_ADDR,
-        input: approveAutowrapCalldata,
+        input: increaseAutowrapAllowanceCalldata,
     },
     // ENS Stream Transactions
     {

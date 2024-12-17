@@ -9,6 +9,7 @@ export const ERC20_ABI = [
     "function allowance(address owner, address spender) external view returns (uint256)",
     "function balanceOf(address account) external view returns (uint256)",
     "function decimals() external view returns (uint8)",
+    "function increaseAllowance(address spender, uint256 increment)",
 ];
 
 export const USDCX_ABI = [

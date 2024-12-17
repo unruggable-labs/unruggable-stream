@@ -86,9 +86,14 @@ export const approveUSDCX = async () => {
     assert(USDC_ALLOWANCE_AMOUNT === 100000000000n, "USDC Allowance Amount is not 100000000000");
 
     // Generate the calldata for calling the approve function
-    const approveAllowanceCalldata = USDCContract.interface.encodeFunctionData("approve", [USDCX_ADDR, USDC_ALLOWANCE_AMOUNT]);
+    const approveAllowanceArguments = [USDCX_ADDR, USDC_ALLOWANCE_AMOUNT];
+    const approveAllowanceCalldata = USDCContract.interface.encodeFunctionData("approve", approveAllowanceArguments);
     
     // Log the calldata
+    console.log("-------------------");
+    console.log("approveAllowanceArguments");
+    console.log("-------------------");
+    console.log(approveAllowanceArguments);
     console.log("-------------------");
     console.log("approveAllowanceCalldata");
     console.log("-------------------");
@@ -141,9 +146,14 @@ export const upgradeUSDC = async () => {
 
     const USDC_UPGRADE_AMOUNT = UPFRONT_USDC_ALLOWANCE * USDCDivisor;
     assert(USDC_UPGRADE_AMOUNT === 100000000000n, "USDC Upgrade Amount is not 100000000000");
-    const upgradeUSDCCalldata = USDCXContract.interface.encodeFunctionData("upgrade", [USDC_UPGRADE_AMOUNT]);
+    const upgradeUSDCArguments = [USDC_UPGRADE_AMOUNT];
+    const upgradeUSDCCalldata = USDCXContract.interface.encodeFunctionData("upgrade", upgradeUSDCArguments);
 
     // Log the calldata
+    console.log("-------------------");
+    console.log("upgradeUSDCArguments");
+    console.log("-------------------");
+    console.log(upgradeUSDCArguments);
     console.log("-------------------");
     console.log("upgradeUSDCCalldata");
     console.log("-------------------");
@@ -220,16 +230,21 @@ export const setFlowrate = async () => {
     assert(USD_PER_SECOND === 38026517538495352n, "USD Per Second is not 38026517538495352");
 
     // Generate the calldata for calling the setFlowrate function
+    const setFlowrateArguments =         [
+        USDCX_ADDR, 
+        UNRUGGABLE_ADDR, 
+        USD_PER_SECOND
+    ];
     const setFlowrateCalldata = SuperfluidContract.interface.encodeFunctionData(
         "setFlowrate", 
-        [
-            USDCX_ADDR, 
-            UNRUGGABLE_ADDR, 
-            USD_PER_SECOND
-        ]
+        setFlowrateArguments
     );
 
     // Log the calldata
+    console.log("-------------------");
+    console.log("setFlowrateArguments");
+    console.log("-------------------");
+    console.log(setFlowrateArguments);
     console.log("-------------------");
     console.log("setFlowrateCalldata");
     console.log("-------------------");
@@ -285,58 +300,59 @@ export const setFlowrate = async () => {
  * The allowance is specifically INCREASED rather than explicitly SET noting that the Autowrap strategy is used by 
  * '[EP5.2] [Executable] Commence Streams for Service Providers' too.
  */
-export const approveAutowrap = async () => {
+export const increaseAutowrapAllowance = async () => {
 
     console.log("-------------------");
     console.log("-------------------");
-    console.log("4. approveAutowrap");
+    console.log("4. increaseAutowrapAllowance");
     console.log("-------------------");
     console.log("-------------------");
 
     // The USDC balance of the DAO wallet is affected independently of this executable - this could be anything
     const USDCAllowanceBefore = await USDCContract.allowance(SENDER_ADDR, AUTOWRAP_STRATEGY_ADDR);
-    //console.log("Autowrap USDCAllowanceBefore", USDCAllowanceBefore);
+    console.log("Autowrap USDCAllowanceBefore", USDCAllowanceBefore);
+
 
     // We need to add the appropriate number of 0's for the USDC contract, 6
-    const USDC_ALLOWANCE_AMOUNT = AUTOWRAP_ALLOWANCE * USDCDivisor;
-    assert(USDC_ALLOWANCE_AMOUNT === 1100000000000n, "USDC Allowance Amount is not 1100000000000");
-
-    const newAllowance = USDCAllowanceBefore + USDC_ALLOWANCE_AMOUNT;
+    const USDC_ALLOWANCE_INCREMENT_AMOUNT = AUTOWRAP_ALLOWANCE * USDCDivisor;
+    assert(USDC_ALLOWANCE_INCREMENT_AMOUNT === 1100000000000n, "USDC Allowance Amount is not 1100000000000");
 
     // Generate the calldata for calling the approve function
-    const approveAutowrapAllowanceCalldata = USDCContract.interface.encodeFunctionData(
-        "approve", 
-        [
-            AUTOWRAP_STRATEGY_ADDR,
-            newAllowance
-        ]
+    const increaseAutowrapAllowanceArguments = [
+        AUTOWRAP_STRATEGY_ADDR,
+        USDC_ALLOWANCE_INCREMENT_AMOUNT
+    ];
+    const increaseAutowrapAllowanceCalldata = USDCContract.interface.encodeFunctionData(
+        "increaseAllowance", 
+        increaseAutowrapAllowanceArguments
     );
     
     // Log the calldata
     console.log("-------------------");
-    console.log("approveAutowrapAllowanceCalldata");
+    console.log("increaseAutowrapAllowanceArguments");
     console.log("-------------------");
-    console.log(approveAutowrapAllowanceCalldata);
+    console.log(increaseAutowrapAllowanceArguments);
+    console.log("-------------------");
+    console.log("increaseAutowrapAllowanceCalldata");
+    console.log("-------------------");
+    console.log(increaseAutowrapAllowanceCalldata);
     console.log("-------------------");
 
     //////////////////////////////////////////////
-    // Comparison with '[EP5.2] [Executable] Commence Streams for Service Providers'
-    //////////////////////////////////////////////
-    // They did
-    // 0x095ea7b30000000000000000000000001d65c6d3ad39d454ea8f682c49ae7744706ea96d000000000000000000000000000000000000000000000000000004a36fb03800
+    // No comparison available
     //////////////////////////////////////////////
     // We do
-    // 0x095ea7b30000000000000000000000001d65c6d3ad39d454ea8f682c49ae7744706ea96d0000000000000000000000000000000000000000000000000000027fce4c3eeb
+    // 0x395093510000000000000000000000001d65c6d3ad39d454ea8f682c49ae7744706ea96d000000000000000000000000000000000000000000000000000001001d1bf800
     //////////////////////////////////////////////
 
     // Send the transaction from the ENS DAO wallet to the USDC contract address
-    const approveAllowanceTx = await impersonatedSigner.sendTransaction({
+    const increaseAutowrapAllowanceTx = await impersonatedSigner.sendTransaction({
         to: USDC_ADDR,
         from: SENDER_ADDR,
-        data: approveAutowrapAllowanceCalldata,
+        data: increaseAutowrapAllowanceCalldata,
     });
 
-    const approveAllowanceReceipt = await approveAllowanceTx.wait();
+    const increaseAutowrapAllowanceReceipt = await increaseAutowrapAllowanceTx.wait();
 
     //Check that the allowance has been set correctly
     const USDCAllowanceAfter = await USDCContract.allowance(
@@ -344,94 +360,12 @@ export const approveAutowrap = async () => {
         AUTOWRAP_STRATEGY_ADDR
     );
     console.log("Autowrap USDCAllowanceAfter", USDCAllowanceAfter);
-    assert(USDCAllowanceAfter === newAllowance, `USDC Allowance After is not ${newAllowance}`);
+    assert(USDCAllowanceAfter === USDCAllowanceBefore + USDC_ALLOWANCE_INCREMENT_AMOUNT, `USDC Allowance After is not correct`);
 
     // Format output
     console.log("");
     console.log("");
 
     // Return the calldata
-    return approveAutowrapAllowanceCalldata;
-}
-
-
-/**
- * !! UNUSED !!
- * Left here for reference.
- * We do not need to create a new autowrap schedule for each stream.
- * We utilize the same schedule as '[EP5.2] [Executable] Commence Streams for Service Providers'
- */
-export const createAutowrapSchedule = async () => {
-
-    // This is the current value as defined in '[EP5.2] [Executable] Commence Streams for Service Providers'
-    // Sat Jan 24 2065 05:20:00 GMT+0000
-    const EXPIRY_TIME_FAR_IN_FUTURE = 3000000000;
-    const TWENTY_ONE_DAYS_IN_SECONDS = 1814400;
-    const FIFTY_DAYS_IN_SECONDS = 4320000;
-
-    // Generate the calldata for calling the createWrapSchedule function
-    const createWrapScheduleCalldata = AutowrapManagerContract.interface.encodeFunctionData(
-        "createWrapSchedule", 
-        [
-            USDCX_ADDR, 
-            AUTOWRAP_STRATEGY_ADDR, 
-            USDC_ADDR, 
-            EXPIRY_TIME_FAR_IN_FUTURE, 
-            TWENTY_ONE_DAYS_IN_SECONDS, 
-            FIFTY_DAYS_IN_SECONDS
-        ]
-    );
-
-    // Log the calldata
-    console.log("-------------------");
-    console.log("createWrapScheduleCalldata");
-    console.log("-------------------");
-    console.log(createWrapScheduleCalldata);
-    console.log("-------------------");
-
-    //////////////////////////////////////////////
-    // Comparison with '[EP5.2] [Executable] Commence Streams for Service Providers'
-    //////////////////////////////////////////////
-    // They did
-    // 0x5626f9e6
-    // 0000000000000000000000001ba8603d
-    // a702602a8657980e825a6daa03dee93a
-    // 0000000000000000000000001d65c6d3
-    // ad39d454ea8f682c49ae7744706ea96d
-    // 000000000000000000000000a0b86991
-    // c6218b36c1d19d4a2e9eb0ce3606eb48
-    // 00000000000000000000000000000000
-    // 000000000000000000000000b2d05e00
-    // 00000000000000000000000000000000
-    // 000000000000000000000000001baf80
-    // 00000000000000000000000000000000
-    // 0000000000000000000000000041eb00
-    //////////////////////////////////////////////
-    // We do
-    // 0x5626f9e6
-    // 0000000000000000000000001ba8603d
-    // a702602a8657980e825a6daa03dee93a
-    // 0000000000000000000000001d65c6d3
-    // ad39d454ea8f682c49ae7744706ea96d
-    // 000000000000000000000000a0b86991
-    // c6218b36c1d19d4a2e9eb0ce3606eb48
-    // 00000000000000000000000000000000
-    // 000000000000000000000000b2d05e00
-    // 00000000000000000000000000000000
-    // 000000000000000000000000001baf80
-    // 00000000000000000000000000000000
-    // 0000000000000000000000000041eb00
-    //////////////////////////////////////////////
-
-    // Send the transaction from the ENS DAO wallet to the USDC contract address
-    const createWrapScheduleTx = await impersonatedSigner.sendTransaction({
-        to: AUTOWRAP_MGR_ADDR,
-        from: SENDER_ADDR,
-        data: createWrapScheduleCalldata,
-    });
-
-    const createWrapScheduleReceipt = await createWrapScheduleTx.wait();
-
-    // Return the calldata
-    return createWrapScheduleCalldata;
+    return increaseAutowrapAllowanceCalldata;
 }

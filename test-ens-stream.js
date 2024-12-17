@@ -73,14 +73,20 @@ export const approveENS = async () => {
     assert(ENS_ALLOWANCE_AMOUNT === 24000000000000000000000n, "Incorrect ENS_ALLOWANCE_AMOUNT");
 
     // Generate the calldata for calling the approve function
+    const approveAllowanceArguments = [
+        HEDGEY_BATCH_PLANNER_ADDR, 
+        ENS_ALLOWANCE_AMOUNT
+    ];
     const approveAllowanceCalldata = ENSTokenContract.interface.encodeFunctionData(
         "approve", 
-        [
-            HEDGEY_BATCH_PLANNER_ADDR, ENS_ALLOWANCE_AMOUNT
-        ]
+        approveAllowanceArguments
     );
     
     // Log the calldata
+    console.log("-------------------");
+    console.log("approveAllowanceArguments");
+    console.log("-------------------");
+    console.log(approveAllowanceArguments);
     console.log("-------------------");
     console.log("approveAllowanceCalldata");
     console.log("-------------------");
@@ -185,28 +191,33 @@ export const createPlan = async () => {
     const CAN_ADMIN_TRANSFER = true;
 
     // Generate the calldata to create the vesting plan
+    const batchVestingPlansArguments =         [
+        LOCKER_ADDR,
+        ENS_TOKEN_ADDR,
+        TOTAL_ENS_AMOUNT,
+        [
+            [
+                UNRUGGABLE_ADDR, 
+                TOTAL_ENS_AMOUNT, 
+                CURRENT_TIMESTAMP_IN_SECONDS, 
+                CURRENT_TIMESTAMP_IN_SECONDS, 
+                ENS_PER_SECOND,
+            ],
+        ],
+        PERIOD,
+        SENDER_ADDR,
+        CAN_ADMIN_TRANSFER,
+        MINT_TYPE
+    ];
     const batchVestingPlansCalldata = HedgeyBatchPlannerContract.interface.encodeFunctionData(
         "batchVestingPlans", 
-        [
-            LOCKER_ADDR,
-            ENS_TOKEN_ADDR,
-            TOTAL_ENS_AMOUNT,
-            [
-                [
-                    UNRUGGABLE_ADDR, 
-                    TOTAL_ENS_AMOUNT, 
-                    CURRENT_TIMESTAMP_IN_SECONDS, 
-                    CURRENT_TIMESTAMP_IN_SECONDS, 
-                    ENS_PER_SECOND,
-                ],
-            ],
-            PERIOD,
-            SENDER_ADDR,
-            CAN_ADMIN_TRANSFER,
-            MINT_TYPE
-        ]
+        batchVestingPlansArguments
     );
     
+    console.log("-------------------");
+    console.log("batchVestingPlansArguments");
+    console.log("-------------------");
+    console.log(batchVestingPlansArguments);
     console.log("-------------------");
     console.log("batchVestingPlansCalldata");
     console.log("-------------------");
