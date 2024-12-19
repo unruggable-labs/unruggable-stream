@@ -294,6 +294,64 @@ export const setFlowrate = async () => {
     return setFlowrateCalldata;
 }
 
+
+/**
+ * Generates the calldata to cancel the USDC stream by setting the flowrate to 0.
+ */
+export const cancelSuperfluidStream = async () => {
+
+    console.log("-------------------");
+    console.log("-------------------");
+    console.log("5. cancelSuperfluidStream");
+    console.log("-------------------");
+    console.log("-------------------");
+
+    const NEW_FLOW_RATE = 0n;
+
+    // Generate the calldata for calling the setFlowrate function
+    const setFlowrateArguments =         [
+        USDCX_ADDR, 
+        UNRUGGABLE_ADDR, 
+        NEW_FLOW_RATE
+    ];
+    const setFlowrateCalldata = SuperfluidContract.interface.encodeFunctionData(
+        "setFlowrate", 
+        setFlowrateArguments
+    );
+
+    // Log the calldata
+    console.log("-------------------");
+    console.log("(CANCEL STREAM) setFlowrateArguments");
+    console.log("-------------------");
+    console.log(setFlowrateArguments);
+    console.log("-------------------");
+    console.log("(CANCEL STREAM) setFlowrateCalldata");
+    console.log("-------------------");
+    console.log(setFlowrateCalldata);
+    console.log("-------------------");
+
+    // Send the transaction
+    const tx = await impersonatedSigner.sendTransaction({
+        to: SUPERFLUID_ADDR,
+        from: SENDER_ADDR,
+        data: setFlowrateCalldata,
+    });
+
+    // Wait for confirmation
+    const setFlowrateReceipt = await tx.wait();
+
+    const flowRate = await SuperfluidContract.getFlowrate(USDCX_ADDR, SENDER_ADDR, UNRUGGABLE_ADDR);
+    assert(flowRate === 0n, "Flowrate is not 0");
+
+    // Format output
+    console.log("");
+    console.log("");
+
+    // Return the calldata
+    return setFlowrateCalldata;
+}
+
+
 /**
  * This function INCREASES the amount of USDC (owned by the ENS DAO wallet/Timelock) that the Autowrap strategy contract is able to spend.
  * The increase is $1,100,000 USDC which covers the remaining 11 months of funding.

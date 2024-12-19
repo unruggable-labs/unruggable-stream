@@ -48,5 +48,11 @@ export const AUTOWRAP_MANAGER_ABI = [
 export const HEDGEY_BATCH_PLANNER_ABI = [
 	"event BatchCreated(address indexed,address,uint256,uint256,uint8)",
 	"function batchLockingPlans(address,address,uint256,(address,uint256,uint256,uint256,uint256)[],uint256,uint8)",
-	"function batchVestingPlans(address,address,uint256,(address,uint256,uint256,uint256,uint256)[],uint256,address,bool,uint8)"
+	"function batchVestingPlans(address,address,uint256,(address,uint256,uint256,uint256,uint256)[],uint256,address,bool,uint8)",
+
+    "event PlanCreated(uint256 indexed id,address indexed recipient,address indexed token,uint256 amount,uint256 start,uint256 cliff,uint256 end,uint256 rate,uint256 period,address vestingAdmin,bool adminTransferOBO)"
+];
+
+export const HEDGEY_LOCKER_ABI = [
+    "function revokePlans(uint256[] calldata planIds) external"
 ];

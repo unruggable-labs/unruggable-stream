@@ -34,15 +34,17 @@ import {
 }                               from './addresses';
 import { 
     ERC20_ABI, 
-    HEDGEY_BATCH_PLANNER_ABI 
+    HEDGEY_BATCH_PLANNER_ABI,
+    HEDGEY_LOCKER_ABI 
 }                               from './abis';
 import { assert, init }         from './utils';
 
 const { foundry, impersonatedSigner } = await init();
 
 // Contract instances
-const ENSTokenContract              =  new Contract(ENS_TOKEN_ADDR, ERC20_ABI, foundry.provider);
+const ENSTokenContract              = new Contract(ENS_TOKEN_ADDR, ERC20_ABI, foundry.provider);
 const HedgeyBatchPlannerContract    = new Contract(HEDGEY_BATCH_PLANNER_ADDR, HEDGEY_BATCH_PLANNER_ABI, foundry.provider);
+const HedgeyLockerContract          = new Contract(LOCKER_ADDR, HEDGEY_LOCKER_ABI, foundry.provider);
 
 // 24,000 ENS Tokens
 const ENS_ALLOWANCE = 24000n;
@@ -236,10 +238,65 @@ export const createPlan = async () => {
 
     const batchVestingPlansReceipt = await batchVestingPlansTx.wait();
     
+    let planId = null;
+    for (const log of batchVestingPlansReceipt.logs) {
+        try {
+          const decoded = HedgeyBatchPlannerContract.interface.parseLog(log);
+
+          if (decoded != null) {
+              console.log("Event Name:", decoded.name);
+              console.log("Event Args:", decoded.args);
+
+              if (decoded.name === "PlanCreated") {
+                  planId = decoded.args[0];
+              }
+          }
+        } catch (err) {
+          console.error("Log decoding error:", err);
+        }
+      }
+
+
+    console.log("Plan ID:", planId);
+
     // Format output
     console.log("");
     console.log("");
 
     // Return the calldata
-    return batchVestingPlansCalldata;
+    return [planId, batchVestingPlansCalldata];
+}
+
+/**
+ * This function cancels the ENS token vesting plan for the UNRUGGABLE_ADDR to receive 24,000 ENS tokens over 2 years with a 1 year cliff.
+ */
+export const cancelPlan = async (planId) => {
+
+        // Generate the calldata to revoke the vesting plan
+        const cancelPlanArguments = [[planId]];
+        const cancelPlanCalldata = HedgeyLockerContract.interface.encodeFunctionData(
+            "revokePlans", 
+            cancelPlanArguments
+        );
+        
+        console.log("-------------------");
+        console.log("cancelPlanArguments");
+        console.log("-------------------");
+        console.log(cancelPlanArguments);
+        console.log("-------------------");
+        console.log("cancelPlanCalldata");
+        console.log("-------------------");
+        console.log(cancelPlanCalldata);
+        console.log("-------------------");
+    
+        // Send the transaction from the ENS DAO wallet to the USDC contract address
+        const cancelPlanTx = await impersonatedSigner.sendTransaction({
+            to: LOCKER_ADDR,
+            from: SENDER_ADDR,
+            data: cancelPlanCalldata,
+        });
+    
+        const cancelPlanReceipt = await cancelPlanTx.wait();
+
+        return cancelPlanCalldata;
 }
